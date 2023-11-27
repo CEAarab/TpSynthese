@@ -1,6 +1,6 @@
-#TP de Synthèse : Séance 1 
-
-##Nous sommes arrivés à faire les questions de 1 à 6 : 
+TP de Synthèse : Séance 1 
+-
+Nous sommes arrivés à faire les questions de 1 à 6 : 
 
 Qst 1 : Affichage d'un message d'accueil suivi d'un prompt simple
 Qst 2 : Exécution de la commande saisie et retour au prompt
@@ -14,6 +14,5 @@ Les commentaires sont mentionnés dans le fichier code.
 Tout le fonctionnement est testé et validé par le prof durant la séance.
 
 Binôme : CHEKROUN Wiame - AARAB Charaf Eddine
---
 Groupe : 2G1 TD1 TP1
---
+
