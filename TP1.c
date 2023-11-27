@@ -77,14 +77,17 @@ int main() {
             perror("Erreur de fork");
             exit(EXIT_FAILURE);
         } else if (pid == 0) {
-            // CExecute the code
-            execlp(command, command, NULL);
+           
+            char *args[MAX_COMMAND_LENGTH];
+            char *pcs = strtok(command, " ");
+            int i = 0;
+            while (pcs != NULL) {
+                args[i++] = pcs;
+                pcs = strtok(NULL, " ");
+            }
+            args[i] = NULL;
 
-            // Check if we got any errors while running the command, if yes we print a custom error message
-            char errorMsg[MAX_COMMAND_LENGTH + 50];
-            
-            snprintf(errorMsg, sizeof(errorMsg), "Erreur lors de l'exécution de la commande %s\n", command);	// It is not similar to printf , we only stored the output message in C string
-            write(STDOUT_FILENO, errorMsg, strlen(errorMsg));
+            execvp(args[0], args);
             exit(EXIT_FAILURE);
         } else {
             // We wait until the end of the execution in the child process
