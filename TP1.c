@@ -35,8 +35,13 @@ int main() {
 
         // Delete the \n at the end of the read, which we added in line 29, since it might cause problems while executing the command
         command[strcspn(command, "\n")] = '\0';
-
-        
+	
+	// Check if the user want to exit
+	
+        if (strcmp(command, "exit") == 0) {
+            write(STDOUT_FILENO, "Bye bye ...\n", strlen("Bye bye ...\n"));
+            break;
+        }
 
         // Create a child process to run the commands
         pid_t pid = fork();
