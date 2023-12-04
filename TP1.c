@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdbool.h>
+#include <fcntl.h>
 #include <time.h>
 
 #define MAX_COMMAND_LENGTH 100
@@ -32,6 +33,45 @@ void displayPrompt(int status, bool isSignal, long executionTime) {
 // Custom FUnction to calculate the exact time passed.
 long Time(struct timespec start, struct timespec end) {
     return ((end.tv_sec - start.tv_sec) * 1000) + ((end.tv_nsec - start.tv_nsec) / 1000000);
+}
+
+// FUnction to check if there are any redirection symbols, and execute the commands depends on the situation.
+void redirections_func(char* command) {
+    char* input_file = NULL;
+    char* output_file = NULL;
+
+    char* token = strtok(command, " ");
+    int i = 0;
+    char* args[MAX_COMMAND_LENGTH];
+
+    while (token != NULL) {
+        if (strcmp(token, "<") == 0) {
+            token = strtok(NULL, " ");
+            input_file = token; // the next token will be considered as input file
+        } else if (strcmp(token, ">") == 0) {
+            token = strtok(NULL, " ");
+            output_file = token; // the next token will be considered as output file
+        } else {
+            args[i++] = token; // Collect the arguments + command
+        }
+        token = strtok(NULL, " ");
+    }
+    args[i] = NULL;
+	
+	
+    if (input_file != NULL) {
+        int in = open(input_file, O_RDONLY);
+        dup2(in, STDIN_FILENO);
+        close(in);
+    }
+    if (output_file != NULL) {
+        int out = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        dup2(out, STDOUT_FILENO);
+        close(out);
+    }
+
+    execvp(args[0], args);	// EXecute the first argument (command) + other args (Arguments)
+    exit(EXIT_FAILURE);
 }
 
 int main() {
@@ -78,17 +118,23 @@ int main() {
             exit(EXIT_FAILURE);
         } else if (pid == 0) {
            
-            char *args[MAX_COMMAND_LENGTH];
-            char *pcs = strtok(command, " ");
-            int i = 0;
-            while (pcs != NULL) {
-                args[i++] = pcs;
-                pcs = strtok(NULL, " ");
-            }
-            args[i] = NULL;
+            if(strstr(command, "<") != NULL || strstr(command, ">") != NULL){
+            
+		    redirections_func(command); // if there are any redirections in the command call the redirections_func() function
+		    
+            } else {
+            	    char *args[MAX_COMMAND_LENGTH]; 
+		    char *pcs = strtok(command, " "); //Split the command into tokens, in order to get the arguments and the command
+		    int i = 0;
+		    while (pcs != NULL) {
+		        args[i++] = pcs;
+		        pcs = strtok(NULL, " ");
+		    }
+		    args[i] = NULL;
 
-            execvp(args[0], args);
-            exit(EXIT_FAILURE);
+		    execvp(args[0], args);
+		    exit(EXIT_FAILURE);
+            }
         } else {
             // We wait until the end of the execution in the child process
             int status;
