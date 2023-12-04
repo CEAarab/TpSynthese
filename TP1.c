@@ -34,7 +34,65 @@ void displayPrompt(int status, bool isSignal, long executionTime) {
 long Time(struct timespec start, struct timespec end) {
     return ((end.tv_sec - start.tv_sec) * 1000) + ((end.tv_nsec - start.tv_nsec) / 1000000);
 }
+void pipe_func(char* command) {
+    char* args[MAX_COMMAND_LENGTH];
+    char* token = strtok(command, "|"); // In order to get the first and seconde command
+    int i = 0;
+    while (token != NULL) {
+        args[i++] = token;
+        token = strtok(NULL, "|");
+    }
+    args[i] = NULL;
 
+    int pipe_fd[2]; 
+    if (pipe(pipe_fd) < 0) { // Creation of the pipes
+        exit(EXIT_FAILURE);
+    }
+
+    pid_t pid1 = fork(); //first fork to create the first child
+    if (pid1 == 0) {        
+	close(pipe_fd[0]);
+        dup2(pipe_fd[1], STDOUT_FILENO); // Redirects the standard output of the first command to the writing end of the pipe
+	close(pipe_fd[1]);
+
+        char *pcs = strtok(args[0], " ");
+        int j = 0;
+        char *command_args[MAX_COMMAND_LENGTH];
+        while (pcs != NULL) {
+            command_args[j++] = pcs;
+            pcs = strtok(NULL, " ");
+        }
+        command_args[j] = NULL;
+        execvp(command_args[0], command_args); //Execute the first command
+        exit(EXIT_FAILURE);
+    } else {
+        pid_t pid2 = fork(); // Second fork to create the 2nd child
+        if (pid2 == 0) {
+            close(pipe_fd[1]); 
+            dup2(pipe_fd[0], STDIN_FILENO); // Redirects the standard output of the second command to the reading end of the pipe
+            close(pipe_fd[0]); 
+
+
+            char *pcs = strtok(args[1], " ");
+            int j = 0;
+            char *command_args[MAX_COMMAND_LENGTH];
+            while (pcs != NULL) {
+                command_args[j++] = pcs;
+                pcs = strtok(NULL, " ");
+            }
+            command_args[j] = NULL;
+
+            execvp(command_args[0], command_args); // Normal final execution like in the main
+            exit(EXIT_FAILURE);
+        } else {
+        //closes all in the parent process
+            close(pipe_fd[0]);
+            close(pipe_fd[1]);
+            waitpid(pid1, NULL, 0);
+            waitpid(pid2, NULL, 0);
+        }
+    }
+}
 // FUnction to check if there are any redirection symbols, and execute the commands depends on the situation.
 void redirections_func(char* command) {
     char* input_file = NULL;
@@ -122,7 +180,11 @@ int main() {
             
 		    redirections_func(command); // if there are any redirections in the command call the redirections_func() function
 		    
-            } else {
+            } else if(strstr(command, "|") != NULL){
+            
+            	    pipe_func(command);
+            
+            }else {
             	    char *args[MAX_COMMAND_LENGTH]; 
 		    char *pcs = strtok(command, " "); //Split the command into tokens, in order to get the arguments and the command
 		    int i = 0;
